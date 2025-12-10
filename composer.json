@@ -14,8 +14,7 @@
         }
     },
     "require": {
-        "php": "^8.4",
-        "eicc/utils": "^1.2"
+        "php": "^8.4"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.0"
