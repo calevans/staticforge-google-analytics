@@ -1,4 +1,4 @@
-# GoogleAnalytics
+#  [StaticForge](https://calevans.com/staticforge) GoogleAnalytics
 
 A StaticForge feature package.
 
