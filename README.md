@@ -9,7 +9,7 @@ License: MIT<br />
 
 ```bash
 composer require calevans/staticforge-google-analytics
-php vendor/bin/staticforge feature:install GoogleAnalytics
+php vendor/bin/staticforge feature:setup GoogleAnalytics
 
 ```
 
