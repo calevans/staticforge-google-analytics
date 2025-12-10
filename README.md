@@ -1,0 +1,28 @@
+# GoogleAnalytics
+
+A StaticForge feature package.
+
+## Installation
+
+```bash
+composer require calevans/staticforge-google-analytics
+php vendor/bin/staticforge feature:install GoogleAnalytics
+
+```
+
+## Configuration
+
+Add the following to your `siteconfig.yaml`:
+
+```yaml
+# Google Analytics Configuration
+google_analytics:
+  enabled: true
+  # tracking_id is set in .env as GOOGLE_ANALYTICS_ID
+```
+
+And add your tracking ID to your `.env` file:
+
+```dotenv
+GOOGLE_ANALYTICS_ID="UA-XXXXX-Y"
+```

@@ -1,0 +1,28 @@
+{
+    "name": "calevans/staticforge-google-analytics",
+    "description": "StaticForge Feature: GoogleAnalytics",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Calevans\\StaticForgeGoogleAnalytics\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Calevans\\StaticForgeGoogleAnalytics\\Tests\\": "tests/"
+        }
+    },
+    "require": {
+        "php": "^8.4",
+        "eicc/utils": "^1.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0"
+    },
+    "extra": {
+        "staticforge": {
+            "feature": "Calevans\\StaticForgeGoogleAnalytics\\Feature"
+        }
+    }
+}
