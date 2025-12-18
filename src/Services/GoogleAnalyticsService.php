@@ -15,24 +15,20 @@ class GoogleAnalyticsService
 
     public function injectAnalytics(string $content, string $trackingId): string
     {
-        $jsTemplatePath = __DIR__ . '/../assets/analytics.js';
+        $snippet = file_get_contents(__DIR__ . '/../assets/analytics.html');
+        $snippet = str_replace('{{TRACKING_ID}}', $trackingId, $snippet);
 
-        if (!file_exists($jsTemplatePath)) {
-            $this->logger->log('ERROR', "Google Analytics JS template not found at {$jsTemplatePath}");
-            return $content;
+        // Try to inject before </head> as recommended by Google
+        if (strpos($content, '</head>') !== false) {
+            return str_replace('</head>', $snippet . "\n</head>", $content);
         }
 
-        $jsContent = file_get_contents($jsTemplatePath);
-        $jsContent = str_replace('{{TRACKING_ID}}', $trackingId, $jsContent);
-
-        $scriptTag = "<script>\n" . $jsContent . "\n</script>";
-
-        // Inject before </body>
+        // Fallback to before </body>
         if (strpos($content, '</body>') !== false) {
-            return str_replace('</body>', $scriptTag . "\n</body>", $content);
+            return str_replace('</body>', $snippet . "\n</body>", $content);
         }
 
         // Fallback: append to end if no body tag
-        return $content . "\n" . $scriptTag;
+        return $content . "\n" . $snippet;
     }
 }
