@@ -4,12 +4,13 @@ namespace Calevans\StaticForgeGoogleAnalytics;
 
 use EICC\StaticForge\Core\BaseFeature;
 use EICC\StaticForge\Core\FeatureInterface;
+use EICC\StaticForge\Core\ConfigurableFeatureInterface;
 use EICC\StaticForge\Core\EventManager;
 use Calevans\StaticForgeGoogleAnalytics\Services\GoogleAnalyticsService;
 use EICC\Utils\Container;
 use EICC\Utils\Log;
 
-class Feature extends BaseFeature implements FeatureInterface
+class Feature extends BaseFeature implements FeatureInterface, ConfigurableFeatureInterface
 {
     protected string $name = 'GoogleAnalytics';
     protected Log $logger;
@@ -21,6 +22,20 @@ class Feature extends BaseFeature implements FeatureInterface
     protected array $eventListeners = [
         'POST_RENDER' => ['method' => 'handlePostRender', 'priority' => 500]
     ];
+
+    public function getRequiredConfig(): array
+    {
+        return [
+            'google_analytics.enabled',
+        ];
+    }
+
+    public function getRequiredEnv(): array
+    {
+        return [
+            'GOOGLE_ANALYTICS_ID',
+        ];
+    }
 
     public function register(EventManager $eventManager, Container $container): void
     {
