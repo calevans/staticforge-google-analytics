@@ -18,11 +18,11 @@ class GoogleAnalyticsFeatureTest extends TestCase
         // The container is initialized in TestCase::setUp()
         // EventManager also needs container for lazy loading
         $this->eventManager = new EventManager($this->container);
-        
+
         $this->feature = new Feature();
         // Since we removed constructor injection, we must call setContainer
         $this->feature->setContainer($this->container);
-        
+
         $this->feature->register($this->eventManager);
     }
 
@@ -54,7 +54,7 @@ class GoogleAnalyticsFeatureTest extends TestCase
         ];
 
         $result = $this->feature->handlePostRender($this->container, $parameters);
-        
+
         $this->assertEquals($parameters['rendered_content'], $result['rendered_content']);
     }
 
@@ -71,7 +71,7 @@ class GoogleAnalyticsFeatureTest extends TestCase
         ];
 
         $result = $this->feature->handlePostRender($this->container, $parameters);
-        
+
         $this->assertEquals($parameters['rendered_content'], $result['rendered_content']);
     }
 
@@ -88,7 +88,7 @@ class GoogleAnalyticsFeatureTest extends TestCase
         ];
 
         $result = $this->feature->handlePostRender($this->container, $parameters);
-        
+
         $this->assertEquals($parameters['rendered_content'], $result['rendered_content']);
     }
 
@@ -106,7 +106,7 @@ class GoogleAnalyticsFeatureTest extends TestCase
         ];
 
         $result = $this->feature->handlePostRender($this->container, $parameters);
-        
+
         $this->assertStringContainsString('G-TEST', $result['rendered_content']);
         $this->assertStringContainsString('googletagmanager.com', $result['rendered_content']);
         $this->assertStringContainsString('</body>', $result['rendered_content']);
