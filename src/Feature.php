@@ -16,6 +16,13 @@ class Feature extends BaseFeature implements FeatureInterface, ConfigurableFeatu
     protected Log $logger;
     private GoogleAnalyticsService $service;
 
+    public function __construct(Log $logger)
+    {
+        $this->name = 'GoogleAnalytics';
+        $this->logger = $logger;
+        $this->service = new GoogleAnalyticsService($this->logger);
+    }
+
     /**
      * @var array<string, array{method: string, priority: int}>
      */
@@ -37,12 +44,9 @@ class Feature extends BaseFeature implements FeatureInterface, ConfigurableFeatu
         ];
     }
 
-    public function register(EventManager $eventManager, Container $container): void
+    public function register(EventManager $eventManager): void
     {
-        parent::register($eventManager, $container);
-        $this->logger = $container->get('logger');
-        $this->service = new GoogleAnalyticsService($this->logger);
-
+        parent::register($eventManager);
         $this->logger->log('INFO', 'Google Analytics Feature registered');
     }
 
@@ -55,7 +59,7 @@ class Feature extends BaseFeature implements FeatureInterface, ConfigurableFeatu
      */
     public function handlePostRender(Container $container, array $parameters): array
     {
-        $siteConfig = $container->getVariable('site_config');
+        $siteConfig = $this->container->getVariable('site_config');
 
         // Check if enabled in site config
         if (empty($siteConfig['google_analytics']['enabled'])) {
