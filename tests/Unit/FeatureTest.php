@@ -15,9 +15,15 @@ class GoogleAnalyticsFeatureTest extends TestCase
     {
         parent::setUp();
 
+        // The container is initialized in TestCase::setUp()
+        // EventManager also needs container for lazy loading
         $this->eventManager = new EventManager($this->container);
+        
         $this->feature = new Feature();
-        $this->feature->register($this->eventManager, $this->container);
+        // Since we removed constructor injection, we must call setContainer
+        $this->feature->setContainer($this->container);
+        
+        $this->feature->register($this->eventManager);
     }
 
     public function testRegisterRegistersEvent(): void

@@ -16,10 +16,10 @@ class Feature extends BaseFeature implements FeatureInterface, ConfigurableFeatu
     protected Log $logger;
     private GoogleAnalyticsService $service;
 
-    public function __construct(Log $logger)
+    public function setContainer(Container $container): void
     {
-        $this->name = 'GoogleAnalytics';
-        $this->logger = $logger;
+        $this->container = $container;
+        $this->logger = $container->get('logger');
         $this->service = new GoogleAnalyticsService($this->logger);
     }
 
