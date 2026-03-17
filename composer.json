@@ -24,5 +24,6 @@
         "staticforge": {
             "feature": "Calevans\\StaticForgeGoogleAnalytics\\Feature"
         }
-    }
+    },
+    "version": "2.0.0"
 }
