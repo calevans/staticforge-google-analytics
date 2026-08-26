@@ -1,10 +1,14 @@
 <?php
 
-namespace EICC\StaticForge\Tests\Unit\Features;
+declare(strict_types=1);
+
+namespace Calevans\StaticForgeGoogleAnalytics\Tests\Unit;
 
 use Calevans\StaticForgeGoogleAnalytics\Feature;
 use Calevans\StaticForgeGoogleAnalytics\Tests\TestCase;
+use EICC\StaticForge\Core\Events\RenderEvent;
 use EICC\StaticForge\Core\EventManager;
+use EICC\StaticForge\Core\FeatureFactory;
 
 class GoogleAnalyticsFeatureTest extends TestCase
 {
@@ -15,15 +19,25 @@ class GoogleAnalyticsFeatureTest extends TestCase
     {
         parent::setUp();
 
-        // The container is initialized in TestCase::setUp()
-        // EventManager also needs container for lazy loading
-        $this->eventManager = new EventManager($this->container);
+        $this->eventManager = new EventManager();
 
-        $this->feature = new Feature();
-        // Since we removed constructor injection, we must call setContainer
-        $this->feature->setContainer($this->container);
+        $feature = (new FeatureFactory($this->container))->make(Feature::class);
+        $this->assertInstanceOf(Feature::class, $feature);
+        $this->feature = $feature;
 
         $this->feature->register($this->eventManager);
+    }
+
+    private function makeEvent(string $outputPath, string $renderedContent): RenderEvent
+    {
+        return new RenderEvent(
+            name: 'POST_RENDER',
+            filePath: '',
+            fileUrl: '',
+            metadata: [],
+            renderedContent: $renderedContent,
+            outputPath: $outputPath,
+        );
     }
 
     public function testRegisterRegistersEvent(): void
@@ -48,14 +62,10 @@ class GoogleAnalyticsFeatureTest extends TestCase
         ]);
         $_ENV['GOOGLE_ANALYTICS_ID'] = 'G-TEST';
 
-        $parameters = [
-            'output_path' => 'index.html',
-            'rendered_content' => '<html><body></body></html>'
-        ];
+        $event = $this->makeEvent('index.html', '<html><body></body></html>');
+        $this->feature->handlePostRender($event);
 
-        $result = $this->feature->handlePostRender($this->container, $parameters);
-
-        $this->assertEquals($parameters['rendered_content'], $result['rendered_content']);
+        $this->assertEquals('<html><body></body></html>', $event->renderedContent);
     }
 
     public function testHandlePostRenderSkipsIfNoId(): void
@@ -65,14 +75,10 @@ class GoogleAnalyticsFeatureTest extends TestCase
         ]);
         unset($_ENV['GOOGLE_ANALYTICS_ID']);
 
-        $parameters = [
-            'output_path' => 'index.html',
-            'rendered_content' => '<html><body></body></html>'
-        ];
+        $event = $this->makeEvent('index.html', '<html><body></body></html>');
+        $this->feature->handlePostRender($event);
 
-        $result = $this->feature->handlePostRender($this->container, $parameters);
-
-        $this->assertEquals($parameters['rendered_content'], $result['rendered_content']);
+        $this->assertEquals('<html><body></body></html>', $event->renderedContent);
     }
 
     public function testHandlePostRenderSkipsIfNotHtml(): void
@@ -82,14 +88,10 @@ class GoogleAnalyticsFeatureTest extends TestCase
         ]);
         $_ENV['GOOGLE_ANALYTICS_ID'] = 'G-TEST';
 
-        $parameters = [
-            'output_path' => 'style.css',
-            'rendered_content' => 'body { color: red; }'
-        ];
+        $event = $this->makeEvent('style.css', 'body { color: red; }');
+        $this->feature->handlePostRender($event);
 
-        $result = $this->feature->handlePostRender($this->container, $parameters);
-
-        $this->assertEquals($parameters['rendered_content'], $result['rendered_content']);
+        $this->assertEquals('body { color: red; }', $event->renderedContent);
     }
 
     public function testHandlePostRenderInjectsCode(): void
@@ -99,16 +101,12 @@ class GoogleAnalyticsFeatureTest extends TestCase
         ]);
         $_ENV['GOOGLE_ANALYTICS_ID'] = 'G-TEST';
 
-        $content = '<html><body>Content</body></html>';
-        $parameters = [
-            'output_path' => 'index.html',
-            'rendered_content' => $content
-        ];
+        $event = $this->makeEvent('index.html', '<html><body>Content</body></html>');
+        $this->feature->handlePostRender($event);
 
-        $result = $this->feature->handlePostRender($this->container, $parameters);
-
-        $this->assertStringContainsString('G-TEST', $result['rendered_content']);
-        $this->assertStringContainsString('googletagmanager.com', $result['rendered_content']);
-        $this->assertStringContainsString('</body>', $result['rendered_content']);
+        $this->assertNotNull($event->renderedContent);
+        $this->assertStringContainsString('G-TEST', $event->renderedContent);
+        $this->assertStringContainsString('googletagmanager.com', $event->renderedContent);
+        $this->assertStringContainsString('</body>', $event->renderedContent);
     }
 }

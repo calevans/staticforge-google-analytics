@@ -1,11 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Calevans\StaticForgeGoogleAnalytics;
 
 use EICC\StaticForge\Core\BaseFeature;
 use EICC\StaticForge\Core\FeatureInterface;
 use EICC\StaticForge\Core\ConfigurableFeatureInterface;
-use EICC\StaticForge\Core\EventManager;
+use EICC\StaticForge\Core\Events\EventListener;
+use EICC\StaticForge\Core\Events\RenderEvent;
 use Calevans\StaticForgeGoogleAnalytics\Services\GoogleAnalyticsService;
 use EICC\Utils\Container;
 use EICC\Utils\Log;
@@ -16,19 +19,12 @@ class Feature extends BaseFeature implements FeatureInterface, ConfigurableFeatu
     protected Log $logger;
     private GoogleAnalyticsService $service;
 
-    public function setContainer(Container $container): void
+    public function __construct(Container $container, Log $logger, GoogleAnalyticsService $service)
     {
         $this->container = $container;
-        $this->logger = $container->get('logger');
-        $this->service = new GoogleAnalyticsService($this->logger);
+        $this->logger = $logger;
+        $this->service = $service;
     }
-
-    /**
-     * @var array<string, array{method: string, priority: int}>
-     */
-    protected array $eventListeners = [
-        'POST_RENDER' => ['method' => 'handlePostRender', 'priority' => 500]
-    ];
 
     public function getRequiredConfig(): array
     {
@@ -44,26 +40,14 @@ class Feature extends BaseFeature implements FeatureInterface, ConfigurableFeatu
         ];
     }
 
-    public function register(EventManager $eventManager): void
-    {
-        parent::register($eventManager);
-        $this->logger->log('INFO', 'Google Analytics Feature registered');
-    }
-
-    /**
-     * Handle POST_RENDER event
-     *
-     * @param Container $container
-     * @param array<string, mixed> $parameters
-     * @return array<string, mixed>
-     */
-    public function handlePostRender(Container $container, array $parameters): array
+    #[EventListener('POST_RENDER', priority: 500)]
+    public function handlePostRender(RenderEvent $event): void
     {
         $siteConfig = $this->container->getVariable('site_config');
 
         // Check if enabled in site config
         if (empty($siteConfig['google_analytics']['enabled'])) {
-            return $parameters;
+            return;
         }
 
         // Get tracking ID from environment
@@ -71,24 +55,22 @@ class Feature extends BaseFeature implements FeatureInterface, ConfigurableFeatu
 
         if (empty($trackingId)) {
             $this->logger->log('WARNING', 'Google Analytics enabled but GOOGLE_ANALYTICS_ID not set in environment');
-            return $parameters;
+            return;
         }
 
         // Only process HTML files
-        $outputPath = $parameters['output_path'] ?? '';
+        $outputPath = $event->outputPath ?? '';
         if (pathinfo($outputPath, PATHINFO_EXTENSION) !== 'html') {
-            return $parameters;
+            return;
         }
 
-        $content = $parameters['rendered_content'] ?? '';
+        $content = $event->renderedContent ?? '';
         if (empty($content)) {
-            return $parameters;
+            return;
         }
 
-        $parameters['rendered_content'] = $this->service->injectAnalytics($content, $trackingId);
+        $event->renderedContent = $this->service->injectAnalytics($content, $trackingId);
 
         $this->logger->log('DEBUG', "Injected Google Analytics code into {$outputPath}");
-
-        return $parameters;
     }
 }

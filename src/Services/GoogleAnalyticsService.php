@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Calevans\StaticForgeGoogleAnalytics\Services;
 
 use EICC\Utils\Log;
@@ -16,6 +18,10 @@ class GoogleAnalyticsService
     public function injectAnalytics(string $content, string $trackingId): string
     {
         $snippet = file_get_contents(__DIR__ . '/../assets/analytics.html');
+        if ($snippet === false) {
+            $this->logger->log('ERROR', 'GoogleAnalytics: failed to read analytics.html snippet');
+            return $content;
+        }
         $snippet = str_replace('{{TRACKING_ID}}', $trackingId, $snippet);
 
         // Try to inject before </head> as recommended by Google
