@@ -7,8 +7,10 @@ namespace Calevans\StaticForgeGoogleAnalytics;
 use EICC\StaticForge\Core\BaseFeature;
 use EICC\StaticForge\Core\FeatureInterface;
 use EICC\StaticForge\Core\ConfigurableFeatureInterface;
+use EICC\StaticForge\Core\EventManager;
 use EICC\StaticForge\Core\Events\EventListener;
 use EICC\StaticForge\Core\Events\RenderEvent;
+use Calevans\StaticForgeGoogleAnalytics\Models\AnalyticsSettings;
 use Calevans\StaticForgeGoogleAnalytics\Services\GoogleAnalyticsService;
 use EICC\Utils\Container;
 use EICC\Utils\Log;
@@ -18,6 +20,8 @@ class Feature extends BaseFeature implements FeatureInterface, ConfigurableFeatu
     protected string $name = 'GoogleAnalytics';
     protected Log $logger;
     private GoogleAnalyticsService $service;
+    private bool $settingsResolved = false;
+    private ?AnalyticsSettings $settings = null;
 
     public function __construct(Container $container, Log $logger, GoogleAnalyticsService $service)
     {
@@ -35,42 +39,79 @@ class Feature extends BaseFeature implements FeatureInterface, ConfigurableFeatu
 
     public function getRequiredEnv(): array
     {
-        return [
-            'GOOGLE_ANALYTICS_ID',
-        ];
+        return [];
+    }
+
+    public function getConfigHelp(string $key): ?string
+    {
+        if ($key === 'google_analytics.enabled') {
+            return <<<YAML
+google_analytics:
+  enabled: true                  # bool.   Default false (absent == off)
+  tracking_id: G-XXXXXXXXXX      # string. Default null. Overridden by GOOGLE_ANALYTICS_ID
+  debug: false                   # bool.   Default false
+  exclude:                       # list of globs. Default []
+    - drafts/*
+YAML;
+        }
+
+        return null;
+    }
+
+    public function register(EventManager $eventManager): void
+    {
+        parent::register($eventManager);
+        $this->logger->log('INFO', 'GoogleAnalytics Feature registered');
     }
 
     #[EventListener('POST_RENDER', priority: 500)]
     public function handlePostRender(RenderEvent $event): void
     {
-        $siteConfig = $this->container->getVariable('site_config');
-
-        // Check if enabled in site config
-        if (empty($siteConfig['google_analytics']['enabled'])) {
+        if ($event->renderedContent === null || $event->renderedContent === '') {
             return;
         }
 
-        // Get tracking ID from environment
-        $trackingId = $_ENV['GOOGLE_ANALYTICS_ID'] ?? null;
-
-        if (empty($trackingId)) {
-            $this->logger->log('WARNING', 'Google Analytics enabled but GOOGLE_ANALYTICS_ID not set in environment');
+        $settings = $this->resolveSettings();
+        if ($settings === null) {
             return;
         }
 
-        // Only process HTML files
         $outputPath = $event->outputPath ?? '';
-        if (pathinfo($outputPath, PATHINFO_EXTENSION) !== 'html') {
+        if (strtolower(pathinfo($outputPath, PATHINFO_EXTENSION)) !== 'html') {
             return;
         }
 
-        $content = $event->renderedContent ?? '';
-        if (empty($content)) {
+        $outputDir = $this->container->getVariable('OUTPUT_DIR');
+        if ($this->service->isExcluded($outputPath, is_string($outputDir) ? $outputDir : null, $settings)) {
+            $this->logger->log('DEBUG', "GoogleAnalytics: excluded {$outputPath}");
             return;
         }
 
-        $event->renderedContent = $this->service->injectAnalytics($content, $trackingId);
+        $event->renderedContent = $this->service->injectAnalytics($event->renderedContent, $settings);
+        $this->logger->log('DEBUG', "GoogleAnalytics: injected into {$outputPath}");
+    }
 
-        $this->logger->log('DEBUG', "Injected Google Analytics code into {$outputPath}");
+    private function resolveSettings(): ?AnalyticsSettings
+    {
+        if ($this->settingsResolved) {
+            return $this->settings;
+        }
+
+        $siteConfig = $this->container->getVariable('site_config');
+        $gaConfig = is_array($siteConfig) && is_array($siteConfig['google_analytics'] ?? null)
+            ? $siteConfig['google_analytics']
+            : [];
+
+        $envId = $this->container->getVariable('GOOGLE_ANALYTICS_ID');
+        $envEnabled = $this->container->getVariable('GOOGLE_ANALYTICS_ENABLED');
+
+        $this->settings = $this->service->resolveSettings(
+            $gaConfig,
+            is_string($envId) ? $envId : null,
+            is_string($envEnabled) ? $envEnabled : null,
+        );
+        $this->settingsResolved = true;
+
+        return $this->settings;
     }
 }

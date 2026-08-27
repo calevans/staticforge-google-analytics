@@ -1,4 +1,11 @@
 # Google Analytics Configuration
 google_analytics:
-  enabled: true
-  # tracking_id is set in .env as GOOGLE_ANALYTICS_ID
+  enabled: true                    # bool.  Default false (absent == off)
+
+  # Alternative to GOOGLE_ANALYTICS_ID in .env, which wins when both are set.
+  # A measurement ID is not a secret — it ships in every published page.
+  #tracking_id: G-XXXXXXXXXX
+
+  debug: false                     # bool.  Adds debug_mode for GA DebugView
+  exclude: []                      # list of globs, relative to OUTPUT_DIR
+    #- drafts/*
